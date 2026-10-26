@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: ospatetas
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
