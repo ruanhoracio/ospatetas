@@ -470,7 +470,118 @@ function onSnapshot(s) {
   snaps.push(s);
   if (snaps.length > 30) snaps.shift();
   latest = s;
+  if (net && !net.local && mode === 'game') predSync(s);
   for (const e of s.ev) handleEvent(e);
+}
+
+// ================= previsão (online) =================
+// O navegador roda a mesma física do servidor: o seu boneco responde na hora
+// e o estado do servidor só vai corrigindo aos poucos.
+let pred = null;
+function predReset(s) {
+  const game = new Game({ mapIndex: s.map, predict: true });
+  game.mapT = s.mt;
+  pred = { game, acc: 0, last: performance.now(), seq: pred?.seq || 0, hist: new Map(), round: s.round, map: s.map };
+}
+function snapBodies(p, sp, lead) {
+  PARTS.forEach((k, i) => {
+    const b = p.bodies[k], o = i * 7, ov = i * 3;
+    const v = sp.v || [];
+    b.position.set(sp.b[o] + (v[ov] || 0) * lead, sp.b[o + 1] + (v[ov + 1] || 0) * lead, sp.b[o + 2] + (v[ov + 2] || 0) * lead);
+    b.quaternion.set(sp.b[o + 3], sp.b[o + 4], sp.b[o + 5], sp.b[o + 6]);
+    b.velocity.set(v[ov] || 0, v[ov + 1] || 0, v[ov + 2] || 0);
+  });
+}
+const cq = new THREE.Quaternion(), sq = new THREE.Quaternion();
+function blendBody(b, P, o, Vv, ov, lead, ap, av, aq) {
+  const vx = Vv?.[ov] || 0, vy = Vv?.[ov + 1] || 0, vz = Vv?.[ov + 2] || 0;
+  b.position.x += (P[o] + vx * lead - b.position.x) * ap;
+  b.position.y += (P[o + 1] + vy * lead - b.position.y) * ap;
+  b.position.z += (P[o + 2] + vz * lead - b.position.z) * ap;
+  b.velocity.x += (vx - b.velocity.x) * av;
+  b.velocity.y += (vy - b.velocity.y) * av;
+  b.velocity.z += (vz - b.velocity.z) * av;
+  if (aq) {
+    cq.set(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w);
+    sq.set(P[o + 3], P[o + 4], P[o + 5], P[o + 6]);
+    cq.slerp(sq, aq);
+    b.quaternion.set(cq.x, cq.y, cq.z, cq.w);
+  }
+}
+function predSync(s) {
+  if (!pred || s.round !== pred.round || s.map !== pred.map) predReset(s);
+  const g = pred.game;
+  g.state = s.state;
+  const lead = Math.min(0.2, (net.rtt ?? 0.15) / 2);
+  g.mapT = s.mt + lead;
+  const ids = new Set();
+  for (const sp of s.players) {
+    ids.add(sp.id);
+    let p = g.players.get(sp.id);
+    if (!p) { p = g.addPlayer(sp.id, sp, false, sp.slot); if (!p) continue; p.fresh = true; }
+    if (!sp.alive || sp.b.length !== 42) { if (p.alive) g.despawn(p); continue; }
+    if (!p.alive) { g.spawn(p); p.fresh = true; }
+    p.koT = sp.kt; p.cons = sp.cons;
+    if (sp.st > 0) p.stunT = Math.max(p.stunT, sp.st);
+    const isMe = sp.id === myId;
+    if (!isMe) g.setInput(sp.id, { mx: sp.in[0], mz: sp.in[1], grab: !!sp.in[2], lift: !!sp.in[3], punch: !!sp.in[4], jump: !!sp.in[5] });
+    if (p.fresh) { snapBodies(p, sp, lead); p.facing = sp.f; p.fresh = false; continue; }
+    const tb = p.bodies.torso.position;
+    if (Math.hypot(sp.b[0] - tb.x, sp.b[1] - tb.y, sp.b[2] - tb.z) > 3.5) { snapBodies(p, sp, lead); continue; }
+    if (isMe && sp.kt <= 0) {
+      // compara com onde o seu boneco estava quando o servidor leu aquele comando
+      const h = pred.hist.get(sp.ack);
+      if (h) {
+        const ex = sp.b[0] - h[0], ey = sp.b[1] - h[1], ez = sp.b[2] - h[2];
+        const e = Math.hypot(ex, ey, ez);
+        if (e > 0.03) {
+          const k = e > 1 ? 0.35 : 0.15;
+          for (const b of Object.values(p.bodies)) { b.position.x += ex * k; b.position.y += ey * k; b.position.z += ez * k; }
+          for (const [q, v] of pred.hist) if (q > sp.ack) { v[0] += ex * k; v[1] += ey * k; v[2] += ez * k; }
+          if (e > 0.4) PARTS.forEach((kk, i) => blendBody(p.bodies[kk], sp.b, i * 7, sp.v, i * 3, 0, 0, 0.25, 0));
+        }
+        for (const q of pred.hist.keys()) if (q <= sp.ack) pred.hist.delete(q); else break;
+      }
+    } else {
+      PARTS.forEach((kk, i) => blendBody(p.bodies[kk], sp.b, i * 7, sp.v, i * 3, lead, 0.3, 0.5, 0.3));
+      p.facing = sp.f;
+    }
+  }
+  for (const id of [...g.players.keys()]) if (!ids.has(id)) g.removePlayer(id);
+  s.objs.forEach((o, i) => {
+    const b = g.objects[i];
+    if (!b || b.mass === 0) return;
+    if (Math.hypot(o[0] - b.position.x, o[1] - b.position.y, o[2] - b.position.z) > 3) { b.position.set(o[0], o[1], o[2]); b.quaternion.set(o[3], o[4], o[5], o[6]); b.velocity.set(o[7] || 0, o[8] || 0, o[9] || 0); }
+    else blendBody(b, o, 0, o, 7, lead, 0.3, 0.5, 0.3);
+  });
+  g.events.length = 0;
+}
+function predStep() {
+  const now = performance.now();
+  pred.acc += Math.min(0.25, (now - pred.last) / 1000); pred.last = now;
+  while (pred.acc >= DT) {
+    pred.acc -= DT;
+    const i = readInput();
+    i.s = ++pred.seq;
+    pred.game.setInput(myId, i);
+    net.send({ type: 'input', i });
+    pred.game.step();
+    const meP = pred.game.players.get(myId);
+    if (meP?.alive) { const t = meP.bodies.torso.position; pred.hist.set(i.s, [t.x, t.y, t.z]); }
+    if (pred.hist.size > 300) pred.hist.delete(pred.hist.keys().next().value);
+  }
+  pred.game.events.length = 0;
+}
+function predView() {
+  const g = pred.game, out = [];
+  for (const sp of latest.players) {
+    const p = g.players.get(sp.id);
+    const b = [];
+    if (p?.alive && sp.alive) for (const k of PARTS) { const x = p.bodies[k]; b.push(x.position.x, x.position.y, x.position.z, x.quaternion.x, x.quaternion.y, x.quaternion.z, x.quaternion.w); }
+    out.push({ ...sp, alive: b.length === 42, b });
+  }
+  const objs = g.objects.map((x) => [x.position.x, x.position.y, x.position.z, x.quaternion.x, x.quaternion.y, x.quaternion.z, x.quaternion.w]);
+  return { players: out, objs };
 }
 
 function ensureView(p) {
@@ -511,11 +622,15 @@ let camDist = 16, shake = 0;
 
 function renderGame(dt, time) {
   if (!snaps.length) return;
-  const delay = net?.local ? 0.02 : 0.075;
-  const rt = performance.now() / 1000 + clockOff - delay;
-  let a = snaps[0], b = null;
-  for (let i = snaps.length - 1; i >= 0; i--) if (snaps[i].t <= rt) { a = snaps[i]; b = snaps[i + 1] || null; break; }
-  const t = b ? Math.min(1, Math.max(0, (rt - a.t) / (b.t - a.t))) : 0;
+  let a = snaps[0], b = null, t = 0;
+  if (pred && net && !net.local && mode === 'game') {
+    a = predView();
+  } else {
+    const delay = net?.local ? 0.02 : 0.075;
+    const rt = performance.now() / 1000 + clockOff - delay;
+    for (let i = snaps.length - 1; i >= 0; i--) if (snaps[i].t <= rt) { a = snaps[i]; b = snaps[i + 1] || null; break; }
+    t = b ? Math.min(1, Math.max(0, (rt - a.t) / (b.t - a.t))) : 0;
+  }
 
   const seen = new Set();
   const center = new THREE.Vector3(); let n = 0;
@@ -713,7 +828,7 @@ addEventListener('mouseup', (e) => { if (e.button === 2) mouse.grab = false; pus
 // manda a entrada na hora que muda (sem esperar o próximo envio)
 let lastSent = '', lastSentT = 0;
 function pushInput(force) {
-  if (mode !== 'game' || !net) return;
+  if (mode !== 'game' || !net || !net.local) return; // online: vai junto com cada passo da previsão
   const i = readInput();
   const k = JSON.stringify(i);
   const now = performance.now();
@@ -798,13 +913,17 @@ function localTransport() {
 function onlineTransport(room) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + location.pathname.replace(/[^/]*$/, '') + 'ws');
-    const t = { local: false, id: null, send: (m) => ws.readyState === 1 && ws.send(JSON.stringify(m)), close: () => ws.close() };
-    ws.onopen = () => ws.send(JSON.stringify({ type: 'join', room, info: me }));
+    const t = { local: false, id: null, rtt: null, send: (m) => ws.readyState === 1 && ws.send(JSON.stringify(m)), close: () => { clearInterval(t.pinger); ws.close(); } };
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'join', room, info: me }));
+      t.pinger = setInterval(() => t.send({ type: 'ping', t: performance.now() }), 1500);
+    };
     ws.onmessage = (ev) => {
       const m = JSON.parse(ev.data);
       if (m.type === 'welcome') { t.id = m.id; t.room = m.room; resolve(t); }
       else if (m.type === 'full') { reject(new Error('Sala cheia (máximo 6).')); ws.close(); }
       else if (m.type === 'snap') onSnapshot(m.s);
+      else if (m.type === 'pong') { const r = (performance.now() - m.t) / 1000; t.rtt = t.rtt == null ? r : t.rtt * 0.8 + r * 0.2; }
     };
     ws.onerror = () => reject(new Error('Não deu pra conectar no servidor.'));
     ws.onclose = () => { if (mode === 'game' && net === t) { feedMsg('Conexão perdida.'); setTimeout(leaveGame, 1500); } };
@@ -817,7 +936,7 @@ async function startGame(online) {
   if (!me.name.trim()) { $('name').focus(); $('name').placeholder = 'Escolha um nome primeiro!'; return; }
   audio();
   stopAttract();
-  snaps = []; latest = null; lastMap = -1; clockOff = null;
+  snaps = []; latest = null; lastMap = -1; clockOff = null; pred = null;
   for (const v of views.values()) scene.remove(v.rig.root, v.tag);
   views.clear();
   try {
@@ -838,11 +957,13 @@ async function startGame(online) {
   $('touch').classList.toggle('hidden', !isTouch);
   $('help').classList.toggle('hidden', isTouch);
   $('invite').classList.toggle('hidden', net.local);
-  inputTimer = setInterval(() => pushInput(), 1000 / 60);
+  // online: a física local roda num relógio próprio, sem depender da taxa de quadros
+  inputTimer = setInterval(() => (net && !net.local ? pred && predStep() : pushInput()), 1000 / 120);
 }
 
 function leaveGame() {
   clearInterval(inputTimer);
+  pred = null;
   net?.close(); net = null;
   mode = 'menu';
   $('hud').classList.add('hidden');
@@ -992,6 +1113,7 @@ function frame() {
   }
 }
 frame();
+window.__pm = { get pred() { return pred; }, get latest() { return latest; }, get myId() { return myId; } };
 
 // ================= abertura (logo + carregamento) =================
 (() => {

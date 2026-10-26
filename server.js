@@ -12,7 +12,8 @@ app.use(express.static(path.join(dir, 'public')));
 app.use('/shared', express.static(path.join(dir, 'shared')));
 app.get('/vendor/three.module.js', (q, r) => r.sendFile(path.join(dir, 'node_modules/three/build/three.module.js')));
 app.get('/vendor/cannon-es.js', (q, r) => r.sendFile(path.join(dir, 'node_modules/cannon-es/dist/cannon-es.js')));
-app.get('/api/ping', (q, r) => r.json({ ok: true, rooms: rooms.size }));
+app.get('/api/ping', (q, r) => r.json({ ok: true, rooms: rooms.size, players: [...rooms.values()].reduce((n, x) => n + x.game.players.size, 0), stepMs: +perf.stepMs.toFixed(2), cpuUsoPct: +(perf.load * 100).toFixed(0) }));
+const perf = { stepMs: 0, load: 0 };
 
 const server = createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
@@ -28,12 +29,16 @@ function getRoom(code) {
   return r;
 }
 
+// LAG_MS=150 simula internet lenta pra testes
+const LAG = +process.env.LAG_MS || 0;
 wss.on('connection', (ws) => {
+  if (LAG) { const send = ws.send.bind(ws); ws.send = (d) => setTimeout(() => ws.readyState === 1 && send(d), LAG / 2); const emit = ws.emit.bind(ws); ws.emit = (ev, ...a) => ev === 'message' ? setTimeout(() => emit(ev, ...a), LAG / 2) : emit(ev, ...a); }
   let room = null;
   const id = 'p' + nextId++;
   ws.on('message', (raw) => {
     let m;
     try { m = JSON.parse(raw); } catch { return; }
+    if (m.type === 'ping') { ws.send(JSON.stringify({ type: 'pong', t: m.t })); return; }
     if (m.type === 'join' && !room) {
       const code = String(m.room || 'geral').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'GERAL';
       const r = getRoom(code);
@@ -66,11 +71,14 @@ wss.on('connection', (ws) => {
 // laço fixo de 60 passos/s, envia 30 estados/s
 setInterval(() => {
   const now = performance.now();
+  const t0 = now;
   for (const r of rooms.values()) {
     r.acc += Math.min(0.25, (now - r.last) / 1000);
     r.last = now;
     while (r.acc >= DT) {
+      const s0 = performance.now();
       r.game.step();
+      perf.stepMs = perf.stepMs * 0.98 + (performance.now() - s0) * 0.02;
       r.acc -= DT;
       if (++r.tick % 2 === 0) {
         const msg = JSON.stringify({ type: 'snap', s: r.game.snapshot() });
@@ -78,6 +86,7 @@ setInterval(() => {
       }
     }
   }
+  perf.load = perf.load * 0.99 + ((performance.now() - t0) / 8) * 0.01;
 }, 8);
 
 const PORT = process.env.PORT || 3000;

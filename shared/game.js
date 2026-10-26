@@ -21,6 +21,7 @@ const PARTS = ['torso', 'head', 'armL', 'armR', 'legL', 'legR'];
 
 const wrap = (a) => { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; };
 const r3 = (n) => Math.round(n * 1000) / 1000;
+const r2 = (n) => Math.round(n * 100) / 100;
 
 function capsule(body, r, ys) { for (const y of ys) body.addShape(new CANNON.Sphere(r), V(0, y, 0)); }
 
@@ -64,6 +65,8 @@ export class Game {
     this.msg = '';
     this.events = [];
     this.botN = 0;
+    this.round = 0;
+    this.predict = !!opts.predict; // cópia no navegador que adianta o próprio boneco
     this.buildWorld();
   }
 
@@ -151,10 +154,11 @@ export class Game {
   }
 
   // ---------- jogadores ----------
-  addPlayer(id, info, isBot = false) {
+  addPlayer(id, info, isBot = false, forceSlot) {
     if (this.players.size >= MAX_PLAYERS) return null;
     const used = new Set([...this.players.values()].map((p) => p.slot));
     let slot = 0; while (used.has(slot)) slot++;
+    if (forceSlot != null) slot = forceSlot;
     const p = new Player(id, info, slot, isBot);
     this.players.set(id, p);
     if (this.state !== 'round') this.spawn(p);
@@ -186,6 +190,7 @@ export class Game {
   setInput(id, i) {
     const p = this.players.get(id);
     if (!p || p.isBot || !i) return;
+    if (Number.isFinite(i.s)) p.ack = i.s;
     const mx = +i.mx || 0, mz = +i.mz || 0;
     const l = Math.hypot(mx, mz);
     p.input.mx = l > 1 ? mx / l : mx; p.input.mz = l > 1 ? mz / l : mz;
@@ -200,6 +205,7 @@ export class Game {
   // ---------- rodadas ----------
   resetRound(nextMap) {
     for (const p of this.players.values()) this.despawn(p);
+    this.round++;
     if (nextMap) this.mapIndex = (this.mapIndex + 1) % MAPS.length;
     this.buildWorld();
     for (const p of this.players.values()) this.spawn(p);
@@ -274,6 +280,7 @@ export class Game {
     for (const p of this.players.values()) {
       if (!p.alive) continue;
       p.prev.jump = p.input.jump; p.prev.punch = p.input.punch; p.prev.grab = p.input.grab;
+      if (this.predict) continue; // quem decide queda e regras é o servidor
       const t = p.bodies.torso.position;
       if (t.y < this.map.killY || Math.abs(t.x) > this.map.bound || Math.abs(t.z) > this.map.bound || !isFinite(t.y) || p.badState) {
         p.badState = false;
@@ -282,7 +289,7 @@ export class Game {
         p.respawnT = 2;
       }
     }
-    this.rules(dt);
+    if (!this.predict) this.rules(dt);
   }
 
   control(p, dt) {
@@ -333,7 +340,7 @@ export class Game {
       t.force.y += f;
     }
     const sp = holding ? SPEED * 0.75 : SPEED;
-    const k = limp ? 0.01 : p.grounded ? 0.2 : 0.045;
+    const k = limp ? 0.01 : p.grounded ? 0.3 : 0.06;
     t.velocity.x += (gv.x + mv.x * sp - t.velocity.x) * k;
     t.velocity.z += (gv.z + mv.z * sp - t.velocity.z) * k;
     const jumpNow = p.jumpQ || (inp.jump && !p.prev.jump); p.jumpQ = false;
@@ -354,7 +361,7 @@ export class Game {
     const ang = Math.asin(Math.min(1, s));
     if (s > 1e-5) axis.scale(1 / s, axis);
     const yawErr = wrap(p.facing - Math.atan2(fwdB.x, fwdB.z));
-    const wDes = axis.scale(ang * 13).vadd(V(0, yawErr * 9, 0));
+    const wDes = axis.scale(ang * 13).vadd(V(0, yawErr * 14, 0));
     const a = 0.3;
     t.angularVelocity.x += (wDes.x - t.angularVelocity.x) * a;
     t.angularVelocity.y += (wDes.y - t.angularVelocity.y) * a;
@@ -609,19 +616,23 @@ export class Game {
   snapshot() {
     const players = [];
     for (const p of this.players.values()) {
-      const b = [];
+      const b = [], v = [];
       if (p.alive) for (const k of PARTS) {
         const x = p.bodies[k];
         b.push(r3(x.position.x), r3(x.position.y), r3(x.position.z), r3(x.quaternion.x), r3(x.quaternion.y), r3(x.quaternion.z), r3(x.quaternion.w));
+        v.push(r2(x.velocity.x), r2(x.velocity.y), r2(x.velocity.z));
       }
+      const i = p.input;
       players.push({
         id: p.id, name: p.name, color: p.color, hat: p.hat, eyes: p.eyes, acc: p.acc, slot: p.slot,
         bot: p.isBot, alive: p.alive, ko: p.koT > 0, cons: Math.round(p.cons), wins: p.wins,
-        grab: !!(p.grab?.L || p.grab?.R), b,
+        grab: !!(p.grab?.L || p.grab?.R), b, v,
+        ack: p.ack ?? -1, f: r2(p.facing || 0), kt: r2(Math.max(0, p.koT || 0)), st: r2(Math.max(0, p.stunT || 0, p.heldT || 0)),
+        in: [r2(i.mx), r2(i.mz), i.grab ? 1 : 0, i.lift ? 1 : 0, i.punch ? 1 : 0, i.jump ? 1 : 0],
       });
     }
-    const objs = this.objects.map((x) => [r3(x.position.x), r3(x.position.y), r3(x.position.z), r3(x.quaternion.x), r3(x.quaternion.y), r3(x.quaternion.z), r3(x.quaternion.w)]);
+    const objs = this.objects.map((x) => [r3(x.position.x), r3(x.position.y), r3(x.position.z), r3(x.quaternion.x), r3(x.quaternion.y), r3(x.quaternion.z), r3(x.quaternion.w), r2(x.velocity.x), r2(x.velocity.y), r2(x.velocity.z)]);
     const ev = this.events; this.events = [];
-    return { t: r3(this.time), mt: r3(this.mapT), map: this.mapIndex, state: this.state, msg: this.msg, players, objs, ev };
+    return { t: r3(this.time), mt: r3(this.mapT), round: this.round, map: this.mapIndex, state: this.state, msg: this.msg, players, objs, ev };
   }
 }
