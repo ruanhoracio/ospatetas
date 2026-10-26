@@ -3,5 +3,6 @@ services:
     name: ospatetas
     runtime: node
     plan: free
+    region: virginia
     buildCommand: npm install
     startCommand: npm start

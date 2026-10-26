@@ -511,7 +511,7 @@ let camDist = 16, shake = 0;
 
 function renderGame(dt, time) {
   if (!snaps.length) return;
-  const delay = net?.local ? 0.04 : 0.1;
+  const delay = net?.local ? 0.02 : 0.075;
   const rt = performance.now() / 1000 + clockOff - delay;
   let a = snaps[0], b = null;
   for (let i = snaps.length - 1; i >= 0; i--) if (snaps[i].t <= rt) { a = snaps[i]; b = snaps[i + 1] || null; break; }
@@ -695,9 +695,10 @@ addEventListener('keydown', (e) => {
     if (e.code === 'KeyJ') latch.punch = performance.now() + 90;
   }
   keys.add(e.code);
+  pushInput();
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
 });
-addEventListener('keyup', (e) => keys.delete(e.code));
+addEventListener('keyup', (e) => { keys.delete(e.code); pushInput(); });
 addEventListener('blur', () => { keys.clear(); mouse.grab = mouse.punch = false; });
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 canvas.addEventListener('mousedown', (e) => {
@@ -705,8 +706,21 @@ canvas.addEventListener('mousedown', (e) => {
   audio();
   if (e.button === 0) latch.punch = performance.now() + 90;
   if (e.button === 2) mouse.grab = true;
+  pushInput();
 });
-addEventListener('mouseup', (e) => { if (e.button === 2) mouse.grab = false; });
+addEventListener('mouseup', (e) => { if (e.button === 2) mouse.grab = false; pushInput(); });
+
+// manda a entrada na hora que muda (sem esperar o próximo envio)
+let lastSent = '', lastSentT = 0;
+function pushInput(force) {
+  if (mode !== 'game' || !net) return;
+  const i = readInput();
+  const k = JSON.stringify(i);
+  const now = performance.now();
+  if (k === lastSent && !force && now - lastSentT < 100) return;
+  lastSent = k; lastSentT = now;
+  net.send({ type: 'input', i });
+}
 
 function openChat() { chatOpen = true; $('chatbox').classList.remove('hidden'); $('chatin').value = ''; $('chatin').focus(); keys.clear(); }
 function closeChat() { chatOpen = false; $('chatbox').classList.add('hidden'); $('chatin').blur(); }
@@ -824,7 +838,7 @@ async function startGame(online) {
   $('touch').classList.toggle('hidden', !isTouch);
   $('help').classList.toggle('hidden', isTouch);
   $('invite').classList.toggle('hidden', net.local);
-  inputTimer = setInterval(() => net?.send({ type: 'input', i: readInput() }), 1000 / 30);
+  inputTimer = setInterval(() => pushInput(), 1000 / 60);
 }
 
 function leaveGame() {

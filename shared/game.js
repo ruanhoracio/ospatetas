@@ -7,6 +7,7 @@ export const MAX_PLAYERS = 6;
 const GRAV = 22;
 const HOVER = 1.38;
 const SPEED = 5.2;
+const MAX_V = 24;
 const G_STATIC = 1, G_OBJ = 2;
 const ALL = 0xffff;
 
@@ -188,6 +189,9 @@ export class Game {
     const mx = +i.mx || 0, mz = +i.mz || 0;
     const l = Math.hypot(mx, mz);
     p.input.mx = l > 1 ? mx / l : mx; p.input.mz = l > 1 ? mz / l : mz;
+    // guarda o toque mesmo se apertar e soltar entre dois passos da física
+    if (i.jump && !p.input.jump) p.jumpQ = true;
+    if (i.punch && !p.input.punch) p.punchQ = true;
     p.input.jump = !!i.jump; p.input.punch = !!i.punch; p.input.grab = !!i.grab; p.input.lift = !!i.lift;
   }
 
@@ -266,11 +270,13 @@ export class Game {
     }
     this.world.step(dt);
     this.contacts();
+    this.safety();
     for (const p of this.players.values()) {
       if (!p.alive) continue;
       p.prev.jump = p.input.jump; p.prev.punch = p.input.punch; p.prev.grab = p.input.grab;
       const t = p.bodies.torso.position;
-      if (t.y < this.map.killY || Math.abs(t.x) > this.map.bound || Math.abs(t.z) > this.map.bound || !isFinite(t.y)) {
+      if (t.y < this.map.killY || Math.abs(t.x) > this.map.bound || Math.abs(t.z) > this.map.bound || !isFinite(t.y) || p.badState) {
+        p.badState = false;
         this.event({ type: 'out', name: p.name });
         this.despawn(p);
         p.respawnT = 2;
@@ -310,17 +316,28 @@ export class Game {
     if (moving) p.facing = Math.atan2(mv.x, mv.z);
     const holding = !!(p.grab.L?.bodyB.owner || p.grab.R?.bodyB.owner || p.grab.L?.bodyB.mass || p.grab.R?.bodyB.mass);
 
+    let load = p.mass;
+    if (inp.grab && inp.lift) {
+      const seen = new Set();
+      for (const sd of ['L', 'R']) {
+        const ob = p.grab[sd]?.bodyB;
+        if (!ob || ob.mass === 0) continue;
+        const key = ob.owner || ob;
+        if (!seen.has(key)) { seen.add(key); load += ob.owner ? ob.owner.mass : ob.mass; }
+      }
+    }
     if (p.grounded && !limp) {
       const err = HOVER - dist;
       const vy = t.velocity.y - gv.y;
-      const f = Math.max(0, Math.min(p.mass * GRAV * 4, p.mass * (GRAV + err * 110 - vy * 13)));
+      const f = Math.max(0, Math.min(load * GRAV * 2.5, load * (GRAV + err * 110 - vy * 13)));
       t.force.y += f;
     }
     const sp = holding ? SPEED * 0.75 : SPEED;
     const k = limp ? 0.01 : p.grounded ? 0.2 : 0.045;
     t.velocity.x += (gv.x + mv.x * sp - t.velocity.x) * k;
     t.velocity.z += (gv.z + mv.z * sp - t.velocity.z) * k;
-    if (inp.jump && !p.prev.jump && p.grounded) {
+    const jumpNow = p.jumpQ || (inp.jump && !p.prev.jump); p.jumpQ = false;
+    if (jumpNow && p.grounded) {
       t.velocity.y = 8.6 + Math.max(0, gv.y);
       B.head.velocity.y = 7;
       p.airT = 0.3;
@@ -368,11 +385,12 @@ export class Game {
       } else {
         tgt = hip.vadd(V(0, -0.72, 0)).vadd(left.scale(side === 'L' ? 0.06 : -0.06));
       }
-      this.limbForce(leg, FOOT, tgt, 90, 1.0, 700, t.velocity);
+      this.limbForce(leg, FOOT, tgt, 90, 1.0, 700, t.velocity, t, hip);
     }
 
     // soco
-    if (inp.punch && !p.prev.punch && p.punchCd <= 0) {
+    const punchNow = p.punchQ || (inp.punch && !p.prev.punch); p.punchQ = false;
+    if (punchNow && p.punchCd <= 0) {
       let arm = p.punchArm === 'L' ? 'R' : 'L';
       if (p.grab[arm] && !p.grab[arm === 'L' ? 'R' : 'L']) arm = arm === 'L' ? 'R' : 'L';
       if (!p.grab[arm]) {
@@ -411,21 +429,42 @@ export class Game {
       const sh = t.pointToWorldFrame(SHOULDER[side]);
       const sv = left.scale(side === 'L' ? 1 : -1);
       if (p.punchT > 0 && p.punchArm === side) {
-        this.limbForce(arm, HAND, sh.vadd(fwd.scale(1.15)).vadd(V(0, 0.15, 0)), 700, 0.6, 2600, t.velocity);
+        this.limbForce(arm, HAND, sh.vadd(fwd.scale(1.15)).vadd(V(0, 0.15, 0)), 450, 0.7, 1400, t.velocity, t, sh);
       } else if (inp.grab) {
         const tgt = inp.lift
           ? sh.vadd(V(0, 0.75, 0)).vadd(fwd.scale(0.35)).vadd(sv.scale(-0.12))
           : sh.vadd(fwd.scale(0.72)).vadd(sv.scale(-0.18)).vadd(V(0, 0.05, 0));
-        this.limbForce(arm, HAND, tgt, p.grab[side] ? 650 : 160, 0.8, p.grab[side] ? 2600 : 900, t.velocity);
+        this.limbForce(arm, HAND, tgt, p.grab[side] ? 650 : 160, 0.8, p.grab[side] ? 1800 : 700, t.velocity, t, sh);
         const ow = p.grab[side]?.bodyB.owner;
         if (ow && inp.lift) ow.heldT = 0.15;
       } else {
-        this.limbForce(arm, HAND, sh.vadd(V(0, -0.62, 0)).vadd(sv.scale(0.14)).vadd(fwd.scale(0.06)), 30, 1.0, 200, t.velocity);
+        this.limbForce(arm, HAND, sh.vadd(V(0, -0.62, 0)).vadd(sv.scale(0.14)).vadd(fwd.scale(0.06)), 30, 1.0, 200, t.velocity, t, sh);
       }
     }
   }
 
-  limbForce(body, localPt, target, k, damp, fmax, ref) {
+  // força interna: puxa o membro e empurra o tronco ao contrário (sem "força mágica" que faz voar)
+  safety() {
+    for (const p of this.players.values()) {
+      if (!p.alive) continue;
+      // solta pegada que esticou demais (evita estilingue)
+      for (const sd of ['L', 'R']) {
+        const g = p.grab[sd];
+        if (!g) continue;
+        const wa = g.bodyA.pointToWorldFrame(g.pivotA), wb = g.bodyB.pointToWorldFrame(g.pivotB);
+        if (wa.distanceTo(wb) > 0.55) this.release(p, sd);
+      }
+      for (const b of Object.values(p.bodies)) {
+        if (!isFinite(b.position.x + b.position.y + b.position.z + b.velocity.x + b.velocity.y + b.velocity.z)) { p.badState = true; continue; }
+        const v = b.velocity.length();
+        if (v > MAX_V) b.velocity.scale(MAX_V / v, b.velocity);
+        const w = b.angularVelocity.length();
+        if (w > 30) b.angularVelocity.scale(30 / w, b.angularVelocity);
+      }
+    }
+  }
+
+  limbForce(body, localPt, target, k, damp, fmax, ref, anchor, anchorPt) {
     const w = body.pointToWorldFrame(localPt);
     const r = w.vsub(body.position);
     let v = body.velocity.vadd(body.angularVelocity.cross(r));
@@ -436,6 +475,7 @@ export class Game {
     const l = f.length();
     if (l > fmax) f.scale(fmax / l, f);
     body.applyForce(f, r);
+    if (anchor) anchor.applyForce(f.negate(), anchorPt.vsub(anchor.position));
   }
 
   release(p, side) {
@@ -480,7 +520,7 @@ export class Game {
     }
     if (p.input.grab && p.koT <= 0 && !p.grab[side] && !(p.punchT > 0 && p.punchArm === side)) {
       const pivB = b.pointToLocalFrame(cp);
-      const g = new CANNON.PointToPointConstraint(a, HAND, b, pivB, 2500);
+      const g = new CANNON.PointToPointConstraint(a, HAND, b, pivB, 1200);
       g.bodyB = b;
       this.world.addConstraint(g);
       p.grab[side] = g;
