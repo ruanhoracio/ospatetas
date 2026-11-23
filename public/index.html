@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<meta name="theme-color" content="#5b3df5">
+<title>Rabisca Aí!</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E✏️%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --roxo:#5b3df5; --roxo2:#7c5cff; --rosa:#ff4f8b; --amarelo:#ffc93c; --verde:#1fc27d; --laranja:#ff8a3d; --azul:#2fb5ff;
+  --fundo:#f4f1ff; --cartao:#ffffff; --texto:#1d1640; --suave:#6e6893; --borda:#e3ddff;
+  --sombra:0 6px 0 rgba(43,22,140,.12), 0 10px 30px rgba(43,22,140,.10);
+  --raio:20px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font-family:Nunito,system-ui,sans-serif;color:var(--texto);background:var(--fundo);
+  background-image:radial-gradient(circle at 10% 10%,#e6dfff 0 120px,transparent 121px),radial-gradient(circle at 95% 85%,#ffe3ee 0 160px,transparent 161px);
+  background-attachment:fixed;overscroll-behavior:none}
+h1,h2,h3,.titulo{font-family:"Baloo 2",Nunito,sans-serif;margin:0}
+button{font:inherit;cursor:pointer;border:0;color:inherit}
+input,select{font:inherit;color:inherit}
+.tela{display:none;min-height:100dvh;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom))}
+.tela.ativa{display:flex}
+.centro{flex-direction:column;align-items:center;justify-content:center;gap:18px}
+.cartao{background:var(--cartao);border-radius:var(--raio);box-shadow:var(--sombra);padding:20px;width:100%;max-width:440px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 20px;border-radius:16px;font-weight:800;font-size:17px;
+  background:var(--roxo);color:#fff;box-shadow:0 5px 0 #3a22b8;transition:transform .08s, box-shadow .08s;width:100%}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 #3a22b8}
+.btn.rosa{background:var(--rosa);box-shadow:0 5px 0 #c7285f}
+.btn.rosa:active{box-shadow:0 1px 0 #c7285f}
+.btn.verde{background:var(--verde);box-shadow:0 5px 0 #11905a}
+.btn.verde:active{box-shadow:0 1px 0 #11905a}
+.btn.branco{background:#fff;color:var(--roxo);box-shadow:0 5px 0 var(--borda);border:2px solid var(--borda)}
+.btn.branco:active{box-shadow:0 1px 0 var(--borda)}
+.btn[disabled]{opacity:.5;pointer-events:none}
+.campo{width:100%;padding:14px 16px;border-radius:14px;border:2px solid var(--borda);background:#fbfaff;font-size:18px;font-weight:700;outline:none}
+.campo:focus{border-color:var(--roxo2);background:#fff}
+.rotulo{font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--suave);margin:0 0 8px}
+.logo{font-family:"Baloo 2";font-weight:800;font-size:56px;line-height:.9;text-align:center;color:var(--roxo);letter-spacing:-1px;
+  text-shadow:3px 3px 0 var(--amarelo)}
+.logo span{color:var(--rosa)}
+.sub{color:var(--suave);text-align:center;font-weight:700;margin-top:6px}
+.ou{display:flex;align-items:center;gap:10px;color:var(--suave);font-weight:800;font-size:13px;margin:14px 0}
+.ou::before,.ou::after{content:"";flex:1;height:2px;background:var(--borda)}
+.linha{display:flex;gap:10px}
+.erro{color:#d6214f;font-weight:800;text-align:center;min-height:1.2em}
+.codigo{font-family:"Baloo 2";font-weight:800;font-size:64px;letter-spacing:10px;color:var(--roxo);text-align:center;line-height:1}
+.lista-jog{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;background:#f1edff;font-weight:800;font-size:15px}
+.chip.dono::after{content:"👑"}
+.chip.off{opacity:.45}
+.opcoes{display:flex;flex-wrap:wrap;gap:8px}
+.op{padding:10px 14px;border-radius:14px;background:#f1edff;font-weight:800;font-size:15px;border:2px solid transparent}
+.op.sel{background:var(--roxo);color:#fff;box-shadow:0 3px 0 #3a22b8}
+.op[disabled]{cursor:default}
+.secao{margin-top:18px}
+.passo{display:flex;align-items:center;gap:12px}
+.passo button{width:44px;height:44px;border-radius:12px;background:#f1edff;font-size:22px;font-weight:800}
+.passo b{font-size:22px;min-width:30px;text-align:center}
+.qr{display:flex;justify-content:center;margin:12px 0 4px}
+.qr img,.qr canvas{border-radius:10px}
+.dica-dono{color:var(--suave);font-weight:700;text-align:center;font-size:14px}
+
+/* ---------- jogo ---------- */
+#tJogo{padding:0;flex-direction:column;height:100dvh;min-height:0}
+.topo{display:flex;align-items:center;gap:10px;padding:max(10px,env(safe-area-inset-top)) 12px 10px;background:var(--roxo);color:#fff}
+.relogio{flex:none;width:50px;height:50px;border-radius:50%;display:grid;place-items:center;font-family:"Baloo 2";font-weight:800;font-size:20px;
+  background:conic-gradient(var(--amarelo) var(--p,100%),rgba(255,255,255,.2) 0)}
+.relogio b{width:40px;height:40px;border-radius:50%;background:var(--roxo);display:grid;place-items:center}
+.relogio.urgente b{color:var(--amarelo);animation:pulsa .5s infinite alternate}
+@keyframes pulsa{to{transform:scale(1.12)}}
+.palavra{flex:1;text-align:center;min-width:0}
+.palavra .info{font-size:12px;font-weight:800;opacity:.85;text-transform:uppercase;letter-spacing:.05em}
+.palavra .txt{font-family:"Baloo 2";font-weight:800;font-size:24px;line-height:1.1;letter-spacing:2px;word-break:break-word}
+.palavra .txt.mascara{letter-spacing:5px}
+.rodada{flex:none;font-weight:800;font-size:13px;text-align:right;opacity:.9;width:50px}
+.corpo{flex:1;display:flex;flex-direction:column;min-height:0}
+.palco{padding:10px 10px 0;display:flex;justify-content:center}
+.quadro{position:relative;width:100%;max-width:min(100%,calc(100dvh - 330px));aspect-ratio:1/1;background:#fff;border-radius:16px;box-shadow:var(--sombra);overflow:hidden;touch-action:none}
+.quadro canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.aviso-quadro{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:20px;
+  background:rgba(91,61,245,.94);color:#fff;z-index:2}
+.aviso-quadro.ativo{display:flex}
+.aviso-quadro .grande{font-family:"Baloo 2";font-weight:800;font-size:34px;line-height:1.05}
+.aviso-quadro .pontos{display:flex;flex-direction:column;gap:4px;font-weight:800;margin-top:6px}
+.ferramentas{display:none;flex-direction:column;gap:8px;padding:10px 10px 0}
+.ferramentas.ativo{display:flex}
+.cores{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}
+.cores::-webkit-scrollbar{display:none}
+.cor{flex:none;width:32px;height:32px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px var(--borda)}
+.cor.sel{box-shadow:0 0 0 3px var(--roxo);transform:scale(1.1)}
+.acoes{display:flex;gap:6px;align-items:center}
+.ferr{height:42px;min-width:42px;padding:0 10px;border-radius:12px;background:#fff;box-shadow:0 3px 0 var(--borda);font-weight:800;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.ferr.sel{background:var(--roxo);color:#fff;box-shadow:0 3px 0 #3a22b8}
+.ferr .ponto{border-radius:50%;background:currentColor;display:block}
+.esp{flex:1}
+.baixo{flex:1;display:flex;flex-direction:column;min-height:0;padding:10px}
+.jogadores{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;flex:none}
+.jogadores::-webkit-scrollbar{display:none}
+.jog{flex:none;display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:12px;background:#fff;box-shadow:0 2px 0 var(--borda);font-weight:800;font-size:14px}
+.jog .pts{color:var(--roxo)}
+.jog.desenha{background:var(--amarelo)}
+.jog.acertou{background:#d4f8e6}
+.jog.off{opacity:.4}
+.chat{flex:1;min-height:60px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;padding:8px 10px;background:#fff;border-radius:14px;font-size:15px}
+.chat .m{line-height:1.3;word-break:break-word}
+.chat .m b{color:var(--roxo)}
+.chat .sistema{color:var(--suave);font-weight:700;font-size:14px}
+.chat .acerto{color:#0f9d63;font-weight:800}
+.chat .quase{color:var(--laranja);font-weight:800}
+.chat .revela{color:var(--rosa);font-weight:800}
+.chat .secreto{color:#0f9d63}
+.palpite{display:flex;gap:8px;margin-top:8px;flex:none}
+.palpite .campo{padding:12px 14px;font-size:17px}
+.palpite .btn{width:auto;padding:12px 18px}
+
+/* ---------- fim ---------- */
+.podio{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin:10px 0 18px}
+.podio .p{display:flex;flex-direction:column;align-items:center;gap:6px;width:31%}
+.podio .barra{width:100%;border-radius:14px 14px 6px 6px;display:grid;place-items:center;font-family:"Baloo 2";font-weight:800;font-size:30px;color:#fff}
+.podio .nome{font-weight:800;text-align:center;word-break:break-word;font-size:15px}
+.podio .pp{font-weight:800;color:var(--suave);font-size:14px}
+.ranking{display:flex;flex-direction:column;gap:6px}
+.ranking div{display:flex;justify-content:space-between;padding:10px 14px;background:#f6f3ff;border-radius:12px;font-weight:800}
+.conexao{position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#1d1640;color:#fff;padding:8px 14px;border-radius:999px;font-weight:800;font-size:14px;z-index:20;display:none}
+.conexao.ativo{display:block}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1d1640;color:#fff;padding:10px 16px;border-radius:12px;font-weight:800;z-index:30;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.ativo{opacity:1}
+
+@media (min-width:860px){
+  #tJogo .corpo{flex-direction:row;padding:12px;gap:12px}
+  #tJogo .esquerda{flex:none;width:min(62vw,calc(100dvh - 120px))}
+  .quadro{max-width:100%}
+  .palco,.ferramentas{padding-left:0;padding-right:0}
+  .baixo{padding:10px 0 0}
+}
+</style>
+</head>
+<body>
+<div class="conexao" id="conexao">Reconectando…</div>
+<div class="toast" id="toast"></div>
+
+<!-- INÍCIO -->
+<section class="tela centro ativa" id="tInicio">
+  <div>
+    <div class="logo">Rabisca<br><span>Aí!</span></div>
+    <div class="sub">Um desenha, a galera adivinha ✏️</div>
+  </div>
+  <div class="cartao">
+    <p class="rotulo">Seu nome</p>
+    <input class="campo" id="nome" maxlength="16" placeholder="Como te chamam?" autocomplete="nickname">
+    <div style="height:14px"></div>
+    <button class="btn" id="bCriar">✨ Criar sala</button>
+    <div class="ou">ou entre com o código</div>
+    <div class="linha">
+      <input class="campo" id="codigoEntrar" maxlength="4" placeholder="ABCD" style="text-transform:uppercase;text-align:center;letter-spacing:6px" autocapitalize="characters" autocomplete="off">
+      <button class="btn rosa" id="bEntrar" style="width:auto">Entrar</button>
+    </div>
+    <p class="erro" id="erroInicio"></p>
+  </div>
+</section>
+
+<!-- SALA DE ESPERA -->
+<section class="tela centro" id="tLobby">
+  <div class="cartao" style="text-align:center">
+    <p class="rotulo">Código da sala</p>
+    <div class="codigo" id="lCodigo">----</div>
+    <div class="qr" id="qr"></div>
+    <div class="linha" style="margin-top:8px">
+      <button class="btn branco" id="bCompartilhar">📤 Convidar</button>
+      <button class="btn branco" id="bCopiar">📋 Copiar link</button>
+    </div>
+  </div>
+  <div class="cartao">
+    <p class="rotulo">Jogadores (<span id="lQtd">0</span>)</p>
+    <div class="lista-jog" id="lJogadores"></div>
+
+    <div class="secao"><p class="rotulo">Temas</p><div class="opcoes" id="cfgTemas"></div></div>
+    <div class="secao"><p class="rotulo">Nível</p><div class="opcoes" id="cfgNivel"></div></div>
+    <div class="secao linha" style="justify-content:space-between;flex-wrap:wrap">
+      <div><p class="rotulo">Rodadas</p><div class="passo"><button id="rMenos">−</button><b id="cfgRodadas">3</b><button id="rMais">+</button></div></div>
+      <div><p class="rotulo">Tempo por desenho</p><div class="opcoes" id="cfgTempo"></div></div>
+    </div>
+    <div style="height:20px"></div>
+    <button class="btn verde" id="bIniciar">▶️ Começar jogo</button>
+    <p class="dica-dono" id="lAguardando" style="display:none">Esperando quem criou a sala começar…</p>
+    <p class="erro" id="erroLobby"></p>
+    <button class="btn branco" id="bSairLobby" style="margin-top:6px">Sair da sala</button>
+  </div>
+</section>
+
+<!-- JOGO -->
+<section class="tela" id="tJogo">
+  <div class="topo">
+    <div class="relogio" id="relogio"><b id="relogioTxt">80</b></div>
+    <div class="palavra">
+      <div class="info" id="pInfo">Tema</div>
+      <div class="txt" id="pTxt">…</div>
+    </div>
+    <div class="rodada" id="rodada">1/3</div>
+  </div>
+  <div class="corpo">
+    <div class="esquerda">
+      <div class="palco">
+        <div class="quadro" id="quadro">
+          <canvas id="tela"></canvas>
+          <div class="aviso-quadro" id="aviso"></div>
+        </div>
+      </div>
+      <div class="ferramentas" id="ferramentas">
+        <div class="cores" id="cores"></div>
+        <div class="acoes">
+          <button class="ferr" data-tam="3"><span class="ponto" style="width:5px;height:5px"></span></button>
+          <button class="ferr sel" data-tam="7"><span class="ponto" style="width:10px;height:10px"></span></button>
+          <button class="ferr" data-tam="16"><span class="ponto" style="width:16px;height:16px"></span></button>
+          <button class="ferr" id="fBorracha" title="Borracha">🧽</button>
+          <span class="esp"></span>
+          <button class="ferr" id="fDesfazer" title="Desfazer">↩️</button>
+          <button class="ferr" id="fLimpar" title="Limpar tudo">🗑️</button>
+          <button class="ferr" id="fTrocar" title="Trocar palavra">🔄</button>
+        </div>
+      </div>
+    </div>
+    <div class="baixo">
+      <div class="jogadores" id="jogadores"></div>
+      <div class="chat" id="chat"></div>
+      <form class="palpite" id="fPalpite" autocomplete="off">
+        <input class="campo" id="palpite" maxlength="60" placeholder="Digite seu palpite…" enterkeyhint="send" autocomplete="off" autocorrect="off">
+        <button class="btn rosa" type="submit">➤</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- FIM -->
+<section class="tela centro" id="tFim">
+  <div class="logo" style="font-size:44px">Fim de <span>jogo!</span></div>
+  <div class="cartao">
+    <div class="podio" id="podio"></div>
+    <div class="ranking" id="ranking"></div>
+    <div style="height:18px"></div>
+    <button class="btn verde" id="bDeNovo">🔁 Jogar de novo</button>
+    <p class="dica-dono" id="fAguardando" style="display:none">Esperando quem criou a sala recomeçar…</p>
+    <button class="btn branco" id="bSairFim" style="margin-top:10px">Sair</button>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(() => {
+const $ = (id) => document.getElementById(id);
+const NIVEIS = [['facil','😊 Fácil'],['medio','🤔 Médio'],['dificil','🔥 Difícil'],['misto','🎲 Misturado']];
+const NIVEL_NOME = {facil:'fácil',medio:'médio',dificil:'difícil'};
+const TEMPOS = [40,60,80,100,120,150];
+const CORES = ['#1d1640','#ffffff','#8a8a8a','#e53935','#ff8a3d','#ffc93c','#1fc27d','#0b7a47','#2fb5ff','#1e4fd8','#7c5cff','#ff4f8b','#8d5a2b','#f5c9a0'];
+
+const mem = { get(k){ try{return localStorage.getItem(k)}catch{return null} }, set(k,v){ try{localStorage.setItem(k,v)}catch{} }, del(k){ try{localStorage.removeItem(k)}catch{} } };
+
+let ws, temas = [], st = null, meuId = mem.get('rab_id'), minhaSala = mem.get('rab_sala');
+let offset = 0, tentativas = 0, querSair = false;
+
+// ---------- conexão ----------
+function conectar(){
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}`);
+  ws.onopen = () => {
+    tentativas = 0; $('conexao').classList.remove('ativo');
+    if (minhaSala && !querSair) env({ t:'entrar', codigo:minhaSala, id:meuId, nome:nomeAtual() });
+  };
+  ws.onmessage = (e) => { let m; try{ m = JSON.parse(e.data) }catch{ return } receber(m); };
+  ws.onclose = () => {
+    if (minhaSala) $('conexao').classList.add('ativo');
+    setTimeout(conectar, Math.min(5000, 500 * 2 ** tentativas++));
+  };
+}
+const env = (m) => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); };
+const nomeAtual = () => ($('nome').value.trim() || mem.get('rab_nome') || 'Jogador').slice(0,16);
+
+function receber(m){
+  switch(m.t){
+    case 'temas': temas = m.temas; break;
+    case 'entrou':
+      meuId = m.id; minhaSala = m.codigo; mem.set('rab_id', meuId); mem.set('rab_sala', minhaSala);
+      history.replaceState(null, '', '/?sala=' + m.codigo);
+      break;
+    case 'erro':
+      if (!st) { $('erroInicio').textContent = m.texto; if (/não encontrada/.test(m.texto)) { minhaSala = null; mem.del('rab_sala'); } }
+      else { $('erroLobby').textContent = m.texto; toast(m.texto); }
+      break;
+    case 'estado': offset = m.agora - Date.now(); aplicarEstado(m); break;
+    case 'chat': addChat(m); break;
+    case 'limpar': tracos = []; redesenhar(); break;
+    case 'tracos': tracos = m.tracos.map(t => ({...t, pts:[...t.pts]})); redesenhar(); break;
+    case 'traco': tracos.push({ id:m.id, cor:m.cor, tam:m.tam, pts:[] }); break;
+    case 'pts': {
+      const t = tracos[tracos.length-1]; if (!t || t.id !== m.id) return;
+      for (const p of m.pts){ t.pts.push(p); desenharUltimo(t); }
+      break;
+    }
+  }
+}
+
+// ---------- telas ----------
+function mostrar(id){ document.querySelectorAll('.tela').forEach(s => s.classList.toggle('ativa', s.id === id)); }
+let faseAnterior = null, ultimoDesenhista = null;
+
+function aplicarEstado(s){
+  const antes = st; st = s;
+  const souDono = s.eu === s.donoId;
+  if (s.fase === 'lobby') { mostrar('tLobby'); renderLobby(s, souDono); }
+  else if (s.fase === 'fim') { mostrar('tFim'); renderFim(s, souDono); }
+  else { mostrar('tJogo'); renderJogo(s, antes); requestAnimationFrame(ajustarTela); }
+  faseAnterior = s.fase;
+}
+
+function renderLobby(s, souDono){
+  $('lCodigo').textContent = s.codigo;
+  const on = s.jogadores.filter(j => j.online);
+  $('lQtd').textContent = on.length;
+  const L = $('lJogadores'); L.textContent = '';
+  for (const j of on){ const c = document.createElement('span'); c.className = 'chip' + (j.id === s.donoId ? ' dono' : ''); c.textContent = j.nome + (j.id === s.eu ? ' (você)' : ''); L.append(c); }
+  // temas
+  const T = $('cfgTemas'); T.textContent = '';
+  for (const t of temas){
+    const b = document.createElement('button'); b.className = 'op' + (s.config.temas.includes(t.id) ? ' sel' : ''); b.textContent = `${t.icone} ${t.nome}`; b.disabled = !souDono;
+    b.onclick = () => { let ts = [...s.config.temas]; ts = ts.includes(t.id) ? ts.filter(x => x !== t.id) : [...ts, t.id]; if (!ts.length) return toast('Escolha pelo menos um tema'); cfg({ temas: ts }); };
+    T.append(b);
+  }
+  const N = $('cfgNivel'); N.textContent = '';
+  for (const [id, nome] of NIVEIS){ const b = document.createElement('button'); b.className = 'op' + (s.config.nivel === id ? ' sel' : ''); b.textContent = nome; b.disabled = !souDono; b.onclick = () => cfg({ nivel:id }); N.append(b); }
+  const P = $('cfgTempo'); P.textContent = '';
+  for (const t of TEMPOS){ const b = document.createElement('button'); b.className = 'op' + (s.config.tempo === t ? ' sel' : ''); b.textContent = t + 's'; b.disabled = !souDono; b.onclick = () => cfg({ tempo:t }); P.append(b); }
+  $('cfgRodadas').textContent = s.config.rodadas;
+  $('rMenos').style.visibility = $('rMais').style.visibility = souDono ? 'visible' : 'hidden';
+  $('bIniciar').style.display = souDono ? '' : 'none';
+  $('bIniciar').disabled = on.length < 2;
+  $('bIniciar').textContent = on.length < 2 ? '⏳ Esperando mais gente…' : `▶️ Começar jogo (${on.length})`;
+  $('lAguardando').style.display = souDono ? 'none' : '';
+  // QR para entrar
+  const link = linkSala();
+  const Q = $('qr');
+  if (Q.dataset.link !== link && window.QRCode){ Q.textContent = ''; Q.dataset.link = link; new QRCode(Q, { text: link, width: 150, height: 150, colorDark:'#1d1640', colorLight:'#ffffff' }); }
+}
+const linkSala = () => `${location.origin}/?sala=${st ? st.codigo : ''}`;
+function cfg(parcial){ env({ t:'config', config: { ...st.config, ...parcial } }); }
+
+function renderFim(s, souDono){
+  const r = [...s.jogadores].filter(j => j.online || j.pontos > 0).sort((a,b) => b.pontos - a.pontos);
+  const P = $('podio'); P.textContent = '';
+  const cores = ['#ffc93c','#b9b4d6','#e59a5b'], alturas = [130,100,76], medalhas = ['🥇','🥈','🥉'];
+  for (const i of [1,0,2]){
+    const j = r[i]; if (!j) continue;
+    const d = document.createElement('div'); d.className = 'p';
+    const n = document.createElement('div'); n.className = 'nome'; n.textContent = j.nome;
+    const pp = document.createElement('div'); pp.className = 'pp'; pp.textContent = j.pontos + ' pts';
+    const b = document.createElement('div'); b.className = 'barra'; b.style.height = alturas[i] + 'px'; b.style.background = cores[i]; b.textContent = medalhas[i];
+    d.append(n, pp, b); P.append(d);
+  }
+  const R = $('ranking'); R.textContent = '';
+  r.slice(3).forEach((j, k) => { const d = document.createElement('div'); const a = document.createElement('span'); a.textContent = `${k+4}. ${j.nome}`; const b = document.createElement('span'); b.textContent = j.pontos + ' pts'; d.append(a,b); R.append(d); });
+  $('bDeNovo').style.display = souDono ? '' : 'none';
+  $('fAguardando').style.display = souDono ? 'none' : '';
+}
+
+function renderJogo(s, antes){
+  const souDesenhista = s.eu === s.desenhistaId;
+  const eu = s.jogadores.find(j => j.id === s.eu) || {};
+  // topo
+  const nivel = s.nivel ? ' · ' + NIVEL_NOME[s.nivel] : '';
+  $('pInfo').textContent = (s.temaIcone || '') + ' ' + (s.tema || '') + nivel;
+  const txt = $('pTxt');
+  if (s.palavra){ txt.textContent = s.palavra.toUpperCase(); txt.classList.remove('mascara'); }
+  else if (s.dica){ txt.textContent = s.dica.replace(/ /g,'  '); txt.classList.add('mascara'); }
+  $('rodada').textContent = `Rodada ${Math.min(s.rodada, s.config.rodadas)}/${s.config.rodadas}`;
+  // ferramentas e palpite
+  const desenhando = souDesenhista && s.fase === 'jogando';
+  $('ferramentas').classList.toggle('ativo', desenhando);
+  $('fTrocar').style.display = s.podeTrocar ? '' : 'none';
+  const inp = $('palpite');
+  inp.placeholder = souDesenhista ? 'Converse com quem já acertou…' : eu.acertou ? 'Você acertou! Fale só com quem acertou…' : 'Digite seu palpite…';
+  $('fPalpite').style.display = desenhando ? 'none' : '';
+  // jogadores
+  const J = $('jogadores'); J.textContent = '';
+  for (const j of [...s.jogadores].sort((a,b) => b.pontos - a.pontos)){
+    if (!j.online && !j.pontos) continue;
+    const d = document.createElement('div');
+    d.className = 'jog' + (j.id === s.desenhistaId ? ' desenha' : '') + (j.acertou ? ' acertou' : '') + (j.online ? '' : ' off');
+    const n = document.createElement('span'); n.textContent = (j.id === s.desenhistaId ? '✏️ ' : j.acertou ? '✅ ' : '') + j.nome + (j.id === s.eu ? ' (você)' : '');
+    const p = document.createElement('span'); p.className = 'pts'; p.textContent = j.pontos;
+    d.append(n, p); J.append(d);
+  }
+  // avisos sobre o quadro
+  const A = $('aviso');
+  const novoTurno = s.fase === 'jogando' && (!antes || antes.fase !== 'jogando' || antes.desenhistaId !== s.desenhistaId);
+  const trocouPalavra = s.fase === 'jogando' && souDesenhista && antes && antes.palavra && antes.palavra !== s.palavra;
+  const mostrarAviso = (partes, ms) => {
+    A.textContent = ''; A.append(...partes); A.classList.add('ativo'); A.dataset.tipo = ms ? 'anuncio' : 'fim';
+    clearTimeout(A._t); if (ms) A._t = setTimeout(() => A.classList.remove('ativo'), ms);
+  };
+  const el = (txt, cls) => { const d = document.createElement('div'); if (cls) d.className = cls; d.textContent = txt; return d; };
+  if (s.fase === 'fimTurno'){
+    const pts = el('', 'pontos');
+    const ganhos = s.jogadores.filter(j => j.ganhou > 0).sort((a,b) => b.ganhou - a.ganhou);
+    if (!ganhos.length) pts.append(el('Ninguém acertou 😅'));
+    for (const j of ganhos) pts.append(el(`${j.nome} +${j.ganhou}`));
+    mostrarAviso([el('A palavra era'), el((s.palavra || '').toUpperCase(), 'grande'), pts], 0);
+  } else if ((novoTurno || trocouPalavra) && souDesenhista){
+    mostrarAviso([el('Sua vez! Desenhe:'), el(s.palavra.toUpperCase(), 'grande'), el('Toque no quadro para começar')], 4000);
+    vibrar([60,40,60]);
+  } else if (novoTurno){
+    const nome = (s.jogadores.find(j => j.id === s.desenhistaId) || {}).nome || '';
+    mostrarAviso([el(`${nome} vai desenhar`, 'grande'), el('Fique de olho e chute!')], 2200);
+  } else if (s.fase === 'jogando' && A.dataset.tipo === 'fim') {
+    A.classList.remove('ativo');
+  }
+  if (eu.acertou && antes && !(antes.jogadores.find(j => j.id === s.eu) || {}).acertou) { som('acerto'); vibrar(80); }
+}
+
+// ---------- relógio ----------
+setInterval(() => {
+  if (!st || (st.fase !== 'jogando' && st.fase !== 'fimTurno')) return;
+  const rest = Math.max(0, Math.ceil((st.fimEm - (Date.now() + offset)) / 1000));
+  const total = st.config.tempo;
+  $('relogioTxt').textContent = st.fase === 'jogando' ? rest : '–';
+  $('relogio').style.setProperty('--p', (st.fase === 'jogando' ? Math.min(100, rest / total * 100) : 0) + '%');
+  $('relogio').classList.toggle('urgente', st.fase === 'jogando' && rest <= 10);
+}, 250);
+
+// ---------- chat ----------
+function addChat(m){
+  const C = $('chat'); const d = document.createElement('div'); d.className = 'm ' + (m.tipo || 'msg');
+  if (m.nome){ const b = document.createElement('b'); b.textContent = m.nome + ': '; d.append(b); }
+  d.append(document.createTextNode(m.texto));
+  const embaixo = C.scrollHeight - C.scrollTop - C.clientHeight < 40;
+  C.append(d); while (C.childNodes.length > 80) C.firstChild.remove();
+  if (embaixo) C.scrollTop = C.scrollHeight;
+  if (m.tipo === 'acerto') som('ding');
+}
+$('fPalpite').onsubmit = (e) => { e.preventDefault(); const v = $('palpite').value.trim(); if (!v) return; env({ t:'chat', texto:v }); $('palpite').value = ''; };
+
+// ---------- desenho ----------
+const cv = $('tela'), ctx = cv.getContext('2d');
+$('aviso').onclick = () => { if ($('aviso').dataset.tipo === 'anuncio') $('aviso').classList.remove('ativo'); };
+let tracos = [], W = 0, cor = '#1d1640', tam = 7, borracha = false;
+const BASE = 500; // tamanho do pincel é relativo a um quadro de 500px
+
+function ajustarTela(){
+  const r = cv.getBoundingClientRect(); if (!r.width) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  if (cv.width !== Math.round(r.width * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); W = cv.width; redesenhar(); }
+}
+window.addEventListener('resize', ajustarTela);
+
+function estilo(t){ ctx.strokeStyle = ctx.fillStyle = t.cor; ctx.lineWidth = t.tam * W / BASE; ctx.lineCap = ctx.lineJoin = 'round'; }
+function redesenhar(){
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+  for (const t of tracos){
+    if (!t.pts.length) continue; estilo(t);
+    if (t.pts.length === 1){ ponto(t.pts[0], t); continue; }
+    ctx.beginPath(); ctx.moveTo(t.pts[0][0]*W, t.pts[0][1]*W);
+    for (let i = 1; i < t.pts.length; i++) ctx.lineTo(t.pts[i][0]*W, t.pts[i][1]*W);
+    ctx.stroke();
+  }
+}
+function ponto(p, t){ ctx.beginPath(); ctx.arc(p[0]*W, p[1]*W, t.tam * W / BASE / 2, 0, Math.PI*2); ctx.fill(); }
+function desenharUltimo(t){
+  const n = t.pts.length; estilo(t);
+  if (n === 1) return ponto(t.pts[0], t);
+  const a = t.pts[n-2], b = t.pts[n-1];
+  ctx.beginPath(); ctx.moveTo(a[0]*W, a[1]*W); ctx.lineTo(b[0]*W, b[1]*W); ctx.stroke();
+}
+
+let atual = null, fila = [], ptrId = null;
+const podeDesenhar = () => st && st.fase === 'jogando' && st.eu === st.desenhistaId;
+function pos(e){ const r = cv.getBoundingClientRect(); return [Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))]; }
+cv.addEventListener('pointerdown', (e) => {
+  if (!podeDesenhar() || ptrId !== null) return;
+  $('aviso').classList.remove('ativo');
+  ptrId = e.pointerId; cv.setPointerCapture(e.pointerId);
+  atual = { id: Math.random().toString(36).slice(2,9), cor: borracha ? '#ffffff' : cor, tam: borracha ? Math.max(tam*2.5, 18) : tam, pts: [] };
+  tracos.push(atual);
+  env({ t:'traco', id: atual.id, cor: atual.cor, tam: atual.tam });
+  adicionar(pos(e));
+});
+cv.addEventListener('pointermove', (e) => {
+  if (e.pointerId !== ptrId || !atual) return;
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  for (const ev of (evs.length ? evs : [e])) adicionar(pos(ev));
+});
+const fim = (e) => { if (e.pointerId !== ptrId) return; ptrId = null; enviarFila(); atual = null; };
+cv.addEventListener('pointerup', fim); cv.addEventListener('pointercancel', fim);
+function adicionar(p){
+  const u = atual.pts[atual.pts.length-1];
+  if (u && Math.hypot(p[0]-u[0], p[1]-u[1]) < 0.002) return;
+  atual.pts.push(p); fila.push(p); desenharUltimo(atual);
+}
+function enviarFila(){ if (atual && fila.length){ env({ t:'pts', id: atual.id, pts: fila }); fila = []; } }
+setInterval(enviarFila, 40);
+
+// ferramentas
+const C = $('cores');
+CORES.forEach((c, i) => {
+  const b = document.createElement('button'); b.className = 'cor' + (i === 0 ? ' sel' : ''); b.style.background = c; b.setAttribute('aria-label', 'cor ' + c);
+  b.onclick = () => { cor = c; borracha = false; $('fBorracha').classList.remove('sel'); C.querySelectorAll('.cor').forEach(x => x.classList.toggle('sel', x === b)); };
+  C.append(b);
+});
+document.querySelectorAll('[data-tam]').forEach(b => b.onclick = () => { tam = +b.dataset.tam; document.querySelectorAll('[data-tam]').forEach(x => x.classList.toggle('sel', x === b)); });
+$('fBorracha').onclick = () => { borracha = !borracha; $('fBorracha').classList.toggle('sel', borracha); };
+$('fDesfazer').onclick = () => { if (!podeDesenhar()) return; tracos.pop(); redesenhar(); env({ t:'desfazer' }); };
+$('fLimpar').onclick = () => { if (!podeDesenhar() || !tracos.length) return; tracos = []; redesenhar(); env({ t:'limpar' }); };
+$('fTrocar').onclick = () => env({ t:'trocar' });
+
+// ---------- botões das telas ----------
+function entrar(tipo){
+  const nome = $('nome').value.trim();
+  if (!nome) { $('erroInicio').textContent = 'Coloque seu nome 🙂'; $('nome').focus(); return; }
+  mem.set('rab_nome', nome); querSair = false; $('erroInicio').textContent = '';
+  if (tipo === 'criar') { meuId = null; env({ t:'criar', nome }); }
+  else {
+    const codigo = $('codigoEntrar').value.trim().toUpperCase();
+    if (codigo.length !== 4) { $('erroInicio').textContent = 'O código tem 4 letras.'; return; }
+    if (codigo !== mem.get('rab_sala')) meuId = null;
+    env({ t:'entrar', codigo, id: meuId, nome });
+  }
+  if (!ws || ws.readyState !== 1) $('erroInicio').textContent = 'Conectando ao servidor… tente de novo em instantes.';
+}
+$('bCriar').onclick = () => entrar('criar');
+$('bEntrar').onclick = () => entrar('entrar');
+$('codigoEntrar').addEventListener('keydown', (e) => { if (e.key === 'Enter') entrar('entrar'); });
+$('rMenos').onclick = () => cfg({ rodadas: Math.max(1, st.config.rodadas - 1) });
+$('rMais').onclick = () => cfg({ rodadas: Math.min(10, st.config.rodadas + 1) });
+$('bIniciar').onclick = () => { $('erroLobby').textContent = ''; env({ t:'iniciar' }); };
+$('bDeNovo').onclick = () => { env({ t:'voltarLobby' }); };
+function sairSala(){
+  querSair = true; env({ t:'sair' }); st = null; minhaSala = null; mem.del('rab_sala');
+  $('chat').textContent = ''; tracos = []; history.replaceState(null, '', '/'); mostrar('tInicio');
+}
+$('bSairLobby').onclick = sairSala; $('bSairFim').onclick = sairSala;
+$('bCopiar').onclick = async () => { try { await navigator.clipboard.writeText(linkSala()); toast('Link copiado!'); } catch { toast(linkSala()); } };
+$('bCompartilhar').onclick = async () => {
+  const dados = { title:'Rabisca Aí!', text:`Bora jogar Rabisca Aí! Código da sala: ${st.codigo}`, url: linkSala() };
+  if (navigator.share) { try { await navigator.share(dados); } catch {} } else $('bCopiar').onclick();
+};
+
+// ---------- extras ----------
+function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('ativo'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('ativo'), 2200); }
+function vibrar(p){ try { navigator.vibrate && navigator.vibrate(p); } catch {} }
+let audio;
+function som(tipo){
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    const notas = tipo === 'acerto' ? [523, 659, 784, 1047] : [880];
+    notas.forEach((f, i) => {
+      const o = audio.createOscillator(), g = audio.createGain(); o.type = 'triangle'; o.frequency.value = f;
+      const t0 = audio.currentTime + i * 0.09; g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.15, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.25);
+      o.connect(g).connect(audio.destination); o.start(t0); o.stop(t0 + 0.3);
+    });
+  } catch {}
+}
+
+// ---------- início ----------
+$('nome').value = mem.get('rab_nome') || '';
+const qs = new URLSearchParams(location.search).get('sala');
+if (qs) {
+  $('codigoEntrar').value = qs.toUpperCase().slice(0,4);
+  if (qs.toUpperCase() !== minhaSala) minhaSala = null; // link de outra sala: entra pela tela inicial
+  if (!$('nome').value) setTimeout(() => $('nome').focus(), 300);
+} else { minhaSala = null; }
+conectar();
+})();
+</script>
+</body>
+</html>

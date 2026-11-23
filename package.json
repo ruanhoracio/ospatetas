@@ -1,0 +1,9 @@
+{
+  "name": "rabisca-ai",
+  "version": "1.0.0",
+  "description": "Jogo de desenhar e adivinhar em tempo real pelo celular",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws": "^8.18.0" }
+}
