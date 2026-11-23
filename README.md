@@ -23,11 +23,11 @@ Na sua vez, você recebe uma palavra sorteada e desenha; o desenho aparece ao vi
    ```
 3. O terminal mostra um endereço tipo `http://192.168.0.15:3000`. Abra esse endereço nos celulares (todos no mesmo Wi-Fi do computador).
 
-## Publicar na internet de graça (jogar de qualquer lugar)
-Funciona em qualquer serviço que rode Node com WebSocket. O mais simples é o **Render**:
-1. Crie um repositório no GitHub e suba esta pasta (sem a `node_modules`).
-2. Em https://render.com → New → **Web Service** → escolha o repositório.
-3. Build command: `npm install` · Start command: `npm start` · Plano: Free.
+## Publicar na internet de graça (Render)
+Este jogo está no branch `rabisca-ai` do repositório `ruanhoracio/ospatetas` (o `main` continua com o Ospatetas).
+1. Em https://render.com → **New** → **Web Service** → escolha o repositório `ospatetas`.
+2. Em **Branch**, escolha `rabisca-ai`.
+3. Build command: `npm install` · Start command: `npm start` · Plano: **Free**.
 4. Pronto: o Render dá um link `https://....onrender.com` para mandar para a galera.
 
 No plano grátis o servidor "dorme" depois de 15 min sem uso; o primeiro acesso depois disso demora uns 30 a 50 segundos para acordar.
