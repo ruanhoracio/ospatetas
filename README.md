@@ -1,47 +1,36 @@
-# Ospatetas
+# ✏️ Rabisca Aí!
 
-Jogo de briga com bonecos molengas no navegador, online. Agarre, soque e jogue
-os outros pra fora do mapa: o último em pé vence a rodada.
+Jogo de desenhar e adivinhar para jogar **pessoalmente**, usando os celulares.
+Um celular desenha; o outro mostra o desenho ao vivo para a galera chutar **em voz alta**.
 
-## Rodar no seu computador
+## Como se joga
+1. Um celular toca em **Criar sala** e recebe um código de 4 letras. O outro celular entra com o código (ou pelo link/QR code).
+2. Quem criou a sala escolhe temas, nível, tempo, palavras por vez, número de times e rodadas, e toca em **Começar**.
+3. Na vez de cada time, quem vai desenhar toca em **✏️ Vou desenhar** no próprio celular. Ele recebe a primeira palavra.
+4. O outro celular mostra o desenho em tempo real. A galera do time chuta em voz alta.
+5. Acertaram? Quem está com o celular que mostra toca em **✅ Acertei!**: o celular de quem desenha recebe a próxima palavra e o quadro limpa.
+6. Padrão: **3 palavras em 1:30**. A vez acaba quando as 3 saem ou o tempo zera. Cada acerto vale 1 ponto para o time.
+7. Dá para **Pular** uma palavra (nos dois celulares). Ela conta como erro.
 
-Precisa do Node.js 18 ou mais novo.
+**Temas:** Geral, Futebol, Internet, Animais, Comidas, Profissões, Esportes, Casa e Objetos, Brasil (pode marcar vários).
+**Níveis:** Fácil, Médio, Difícil ou Misturado. **Times:** 1 a 4.
 
-```
-npm install
-npm start
-```
+Se a tela bloquear ou a internet cair, o celular volta para a mesma partida sozinho.
 
-Abra http://localhost:3000. Para jogar com amigos na mesma rede, eles abrem
-`http://SEU-IP:3000/?sala=CODIGO`.
+## Rodar no seu computador (celulares no mesmo Wi-Fi)
+1. Instale o Node.js 18 ou mais novo: https://nodejs.org
+2. Nesta pasta, rode `npm install` e depois `npm start`.
+3. O terminal mostra um endereço tipo `http://192.168.0.15:3000`. Abra nos celulares.
 
-## Colocar online (Render.com)
+## Publicar no Render (grátis)
+Se este repositório já está ligado a um serviço no Render, cada envio para o `main` publica sozinho.
+Para criar do zero: https://render.com → **New** → **Web Service** → escolha o repositório → Build `npm install` · Start `npm start` · Plano **Free**.
+No plano grátis o servidor "dorme" depois de 15 min sem uso; o primeiro acesso depois disso demora uns 30 a 50 segundos.
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ruanhoracio/ospatetas)
+## Adicionar ou mudar palavras
+Edite `palavras.js`. Cada tema tem três listas (`facil`, `medio`, `dificil`) com palavras separadas por vírgula.
 
-Clique no botão acima, ou faça manualmente:
-
-1. Suba esta pasta num repositório do GitHub.
-2. No Render: New > Web Service > escolha o repositório.
-3. Build command: `npm install` · Start command: `npm start`.
-4. Pronto: mande o link `https://seu-jogo.onrender.com/?sala=CODIGO` pros amigos.
-
-Funciona igual em Railway, Fly.io ou qualquer serviço que rode Node com WebSocket.
-
-## Como funciona
-
-- `server.js`: servidor Express + WebSocket. Cada sala roda a física a 60 passos/s
-  e manda o estado pros jogadores 30 vezes/s.
-- `shared/game.js`: a simulação (bonecos ragdoll com cannon-es, regras, bots).
-  O mesmo código roda no servidor e no navegador (modo treino).
-- `shared/maps.js`: os 5 mapas (Telhado, Metrô, Moedor, Vigas, Roda Gigante).
-- `public/`: abertura, lobby, visual 3D (Three.js), controles e sons.
-
-## Controles
-
-- Andar: WASD ou setas · Pular: Espaço
-- Soco: J ou clique esquerdo
-- Agarrar: segure K ou clique direito
-- Levantar: segure L ou Shift; solte o agarrar para arremessar
-- Chat: Enter
-- No celular aparecem joystick e botões na tela.
+## Arquivos
+- `server.js` – servidor (salas, vez de cada time, pontos, repassa o desenho)
+- `palavras.js` – listas de palavras
+- `public/index.html` – a tela do jogo

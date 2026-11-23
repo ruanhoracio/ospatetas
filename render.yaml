@@ -6,3 +6,4 @@ services:
     region: virginia
     buildCommand: npm install
     startCommand: npm start
+    healthCheckPath: /saude
