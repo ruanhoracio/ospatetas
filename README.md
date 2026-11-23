@@ -1,7 +1,7 @@
 # ✏️ Rabisca Aí!
 
 Jogo de desenhar e adivinhar para jogar **pessoalmente**, usando os celulares.
-Um celular desenha; o outro mostra o desenho ao vivo para a galera chutar **em voz alta**.
+Um celular desenha; o outro mostra o desenho ao vivo para a galera chutar **em voz alta**. Durante o desenho, os celulares ficam **deitados (na horizontal)**.
 
 ## Como se joga
 1. Um celular toca em **Criar sala** e recebe um código de 4 letras. O outro celular entra com o código (ou pelo link/QR code).

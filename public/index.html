@@ -67,44 +67,51 @@ input,select{font:inherit;color:inherit}
 
 .t1{--cor:#5b3df5}.t2{--cor:#ff4f8b}.t3{--cor:#e0a800}.t4{--cor:#1fc27d}
 
-/* ---------- jogo ---------- */
-#tJogo{padding:0;flex-direction:column;height:100dvh;min-height:0}
-.topo{display:flex;align-items:center;gap:10px;padding:max(10px,env(safe-area-inset-top)) 12px 10px;background:var(--roxo);color:#fff;flex:none}
-.relogio{flex:none;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-family:"Baloo 2";font-weight:800;font-size:18px;
-  background:conic-gradient(var(--amarelo) var(--p,100%),rgba(255,255,255,.2) 0)}
-.relogio b{width:46px;height:46px;border-radius:50%;background:var(--roxo);display:grid;place-items:center}
-.relogio.urgente b{color:var(--amarelo);animation:pulsa .5s infinite alternate}
-@keyframes pulsa{to{transform:scale(1.12)}}
-.palavra{flex:1;text-align:center;min-width:0}
-.palavra .info{font-size:12px;font-weight:800;opacity:.85;text-transform:uppercase;letter-spacing:.05em}
-.palavra .txt{font-family:"Baloo 2";font-weight:800;font-size:26px;line-height:1.1;word-break:break-word}
-.contador{flex:none;text-align:center;font-weight:800;font-size:12px;width:56px;line-height:1.2}
-.contador b{display:block;font-family:"Baloo 2";font-size:22px}
-.corpo{flex:1;display:flex;flex-direction:column;min-height:0;padding:10px;gap:10px}
-.palco{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
-.quadro{position:relative;width:100%;max-width:100%;max-height:100%;aspect-ratio:1/1;background:#fff;border-radius:16px;box-shadow:var(--sombra);overflow:hidden;touch-action:none}
+/* ---------- jogo (tela deitada) ---------- */
+#tJogo{padding:0;height:100dvh;min-height:0;flex-direction:row;gap:8px;
+  padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
+.palco{flex:1;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.quadro{position:relative;aspect-ratio:16/9;background:#fff;border-radius:14px;box-shadow:var(--sombra);overflow:hidden;touch-action:none}
 .quadro canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
 .flash{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-family:"Baloo 2";font-weight:800;font-size:44px;color:#fff;z-index:3;pointer-events:none}
 .flash.ativo{display:flex;animation:some .9s forwards}
 .flash.acerto{background:rgba(31,194,125,.92)}
 .flash.pulou{background:rgba(110,104,147,.9)}
 @keyframes some{0%{opacity:0}15%{opacity:1}70%{opacity:1}100%{opacity:0}}
-.ferramentas{display:none;flex-direction:column;gap:8px;flex:none}
+.lado{flex:none;width:clamp(150px,24vw,240px);display:flex;flex-direction:column;gap:8px;min-height:0}
+.topo{display:flex;align-items:center;gap:8px;padding:8px;background:var(--roxo);color:#fff;border-radius:14px;flex:none}
+.relogio{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-family:"Baloo 2";font-weight:800;font-size:15px;
+  background:conic-gradient(var(--amarelo) var(--p,100%),rgba(255,255,255,.2) 0)}
+.relogio b{width:39px;height:39px;border-radius:50%;background:var(--roxo);display:grid;place-items:center}
+.relogio.urgente b{color:var(--amarelo);animation:pulsa .5s infinite alternate}
+@keyframes pulsa{to{transform:scale(1.12)}}
+.contador{flex:1;text-align:center;font-weight:800;font-size:11px;line-height:1.1;text-transform:uppercase}
+.contador b{display:block;font-family:"Baloo 2";font-size:22px}
+.palavra{background:#fff;border-radius:14px;padding:8px 10px;text-align:center;box-shadow:0 3px 0 var(--borda);flex:none}
+.palavra .info{font-size:11px;font-weight:800;color:var(--suave);text-transform:uppercase;letter-spacing:.04em}
+.palavra .txt{font-family:"Baloo 2";font-weight:800;font-size:clamp(17px,2.6vw,26px);line-height:1.05;color:var(--roxo);word-break:break-word}
+.ferramentas{display:none;flex-direction:column;gap:6px;flex:1;min-height:0;overflow-y:auto}
 .ferramentas.ativo{display:flex}
-.cores{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}
-.cores::-webkit-scrollbar{display:none}
-.cor{flex:none;width:32px;height:32px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px var(--borda)}
-.cor.sel{box-shadow:0 0 0 3px var(--roxo);transform:scale(1.1)}
-.acoes{display:flex;gap:6px;align-items:center}
-.ferr{height:44px;min-width:44px;padding:0 10px;border-radius:12px;background:#fff;box-shadow:0 3px 0 var(--borda);font-weight:800;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.cores{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;justify-items:center}
+.cor{width:100%;max-width:26px;aspect-ratio:1;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px var(--borda)}
+.cor.sel{box-shadow:0 0 0 3px var(--roxo);transform:scale(1.08)}
+.acoes{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.ferr{height:38px;min-width:0;padding:0 4px;border-radius:10px;background:#fff;box-shadow:0 3px 0 var(--borda);font-weight:800;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:4px}
 .ferr.sel{background:var(--roxo);color:#fff;box-shadow:0 3px 0 #3a22b8}
 .ferr .ponto{border-radius:50%;background:currentColor;display:block}
-.esp{flex:1}
-.mostrar{display:none;gap:10px;flex:none}
+.ferr.largo{grid-column:span 2;font-size:13px}
+.mostrar{display:none;flex-direction:column;gap:8px;flex:1;min-height:0}
 .mostrar.ativo{display:flex}
-.mostrar .acertei{flex:1;font-size:24px;padding:20px}
-.mostrar .pular{width:auto;padding:0 18px;font-size:15px}
-
+.mostrar .acertei{flex:1;font-size:24px;flex-direction:column;gap:2px}
+.mostrar .acertei span{font-size:34px}
+.mostrar .pular{flex:none;padding:10px;font-size:15px}
+.girar{position:fixed;inset:0;z-index:40;background:var(--roxo);color:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px}
+.girar .ic{font-size:72px;animation:gira 1.6s ease-in-out infinite}
+@keyframes gira{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+.girar h2{font-size:30px;line-height:1.1}
+.girar p{margin:0;font-weight:700;opacity:.9}
+.girar .btn{width:auto;background:#fff;color:var(--roxo);box-shadow:0 5px 0 rgba(0,0,0,.2)}
+@media (orientation:portrait){ body.em-jogo .girar{display:flex} }
 /* ---------- preparar / resultado / fim ---------- */
 .vez{font-family:"Baloo 2";font-weight:800;font-size:40px;line-height:1;text-align:center;color:var(--cor)}
 .placar{display:flex;flex-direction:column;gap:8px}
@@ -127,9 +134,6 @@ input,select{font:inherit;color:inherit}
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1d1640;color:#fff;padding:10px 16px;border-radius:12px;font-weight:800;z-index:30;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.ativo{opacity:1}
 .regras{color:var(--suave);font-weight:700;font-size:15px;line-height:1.45;margin:0;padding-left:20px}
-@media (min-width:860px){
-  #tJogo .corpo{max-width:900px;margin:0 auto;width:100%}
-}
 </style>
 </head>
 <body>
@@ -203,22 +207,22 @@ input,select{font:inherit;color:inherit}
   <div class="cartao" id="pPlacarCartao"><p class="rotulo">Placar</p><div class="placar" id="pPlacar"></div></div>
 </section>
 
-<!-- JOGO -->
+<!-- JOGO (tela deitada) -->
 <section class="tela" id="tJogo">
-  <div class="topo">
-    <div class="relogio" id="relogio"><b id="relogioTxt">1:30</b></div>
+  <div class="palco" id="palco">
+    <div class="quadro" id="quadro">
+      <canvas id="tela"></canvas>
+      <div class="flash" id="flash"></div>
+    </div>
+  </div>
+  <div class="lado">
+    <div class="topo">
+      <div class="relogio" id="relogio"><b id="relogioTxt">1:30</b></div>
+      <div class="contador">Palavra<b id="contador">1/3</b></div>
+    </div>
     <div class="palavra">
       <div class="info" id="pInfo">Tema</div>
       <div class="txt" id="pTxt">…</div>
-    </div>
-    <div class="contador">Palavra<b id="contador">1/3</b></div>
-  </div>
-  <div class="corpo">
-    <div class="palco" id="palco">
-      <div class="quadro" id="quadro">
-        <canvas id="tela"></canvas>
-        <div class="flash" id="flash"></div>
-      </div>
     </div>
     <div class="ferramentas" id="ferramentas">
       <div class="cores" id="cores"></div>
@@ -229,16 +233,21 @@ input,select{font:inherit;color:inherit}
         <button class="ferr" id="fBorracha" title="Borracha">🧽</button>
         <button class="ferr" id="fDesfazer" title="Desfazer">↩️</button>
         <button class="ferr" id="fLimpar" title="Limpar tudo">🗑️</button>
-        <span class="esp"></span>
-        <button class="ferr" id="fPular">⏭️ Pular</button>
+        <button class="ferr largo" id="fPular">⏭️ Pular</button>
       </div>
     </div>
     <div class="mostrar" id="mostrar">
-      <button class="btn verde acertei" id="bAcertei">✅ Acertei!</button>
+      <button class="btn verde acertei" id="bAcertei"><span>✅</span>Acertei!</button>
       <button class="btn branco pular" id="bPular">⏭️ Pular</button>
     </div>
   </div>
 </section>
+<div class="girar" id="girar">
+  <div class="ic">📱</div>
+  <h2>Vire o celular de lado</h2>
+  <p>O desenho é na horizontal. Se a tela não girar, desligue o bloqueio de rotação.</p>
+  <button class="btn" id="bGirar">🔄 Girar tela</button>
+</div>
 
 <!-- RESULTADO DA VEZ -->
 <section class="tela centro" id="tResultado">
@@ -329,6 +338,7 @@ const el = (tag, txt, cls) => { const d = document.createElement(tag); if (cls) 
 
 function aplicarEstado(s){
   const antes = st; st = s;
+  document.body.classList.toggle('em-jogo', s.fase === 'desenhando');
   const souDono = s.eu === s.donoId;
   const telas = { lobby:'tLobby', preparar:'tPreparar', desenhando:'tJogo', resultado:'tResultado', fim:'tFim' };
   mostrar(telas[s.fase]);
@@ -436,17 +446,18 @@ setInterval(() => {
 
 // ---------- desenho ----------
 const cv = $('tela'), ctx = cv.getContext('2d');
-let tracos = [], W = 0, cor = CORES[0], tam = 7, borracha = false;
-const BASE = 500;
+let tracos = [], W = 0, H = 0, cor = CORES[0], tam = 7, borracha = false;
+const BASE = 800; // espessura do pincel é relativa a um quadro de 800px de largura
 
 function ajustarTela(){
-  // quadro quadrado do maior tamanho que cabe no espaço livre
+  // quadro 16:9 do maior tamanho que cabe no espaço livre
   const palco = $('palco'), q = $('quadro');
-  const lado = Math.floor(Math.min(palco.clientWidth, palco.clientHeight));
-  if (lado > 0) { q.style.width = q.style.height = lado + 'px'; }
-  const r = cv.getBoundingClientRect(); if (!r.width) return;
+  const pw = palco.clientWidth, ph = palco.clientHeight; if (!pw || !ph) return;
+  let w = pw, h = pw * 9 / 16; if (h > ph) { h = ph; w = ph * 16 / 9; }
+  q.style.width = Math.floor(w) + 'px'; q.style.height = Math.floor(h) + 'px';
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  if (cv.width !== Math.round(r.width * dpr)) { cv.width = cv.height = Math.round(r.width * dpr); W = cv.width; redesenhar(); }
+  const nw = Math.round(Math.floor(w) * dpr), nh = Math.round(Math.floor(h) * dpr);
+  if (cv.width !== nw || cv.height !== nh) { cv.width = nw; cv.height = nh; W = nw; H = nh; redesenhar(); }
 }
 window.addEventListener('resize', () => requestAnimationFrame(ajustarTela));
 
@@ -456,17 +467,17 @@ function redesenhar(){
   for (const t of tracos){
     if (!t.pts.length) continue; estilo(t);
     if (t.pts.length === 1){ ponto(t.pts[0], t); continue; }
-    ctx.beginPath(); ctx.moveTo(t.pts[0][0]*W, t.pts[0][1]*W);
-    for (let i = 1; i < t.pts.length; i++) ctx.lineTo(t.pts[i][0]*W, t.pts[i][1]*W);
+    ctx.beginPath(); ctx.moveTo(t.pts[0][0]*W, t.pts[0][1]*H);
+    for (let i = 1; i < t.pts.length; i++) ctx.lineTo(t.pts[i][0]*W, t.pts[i][1]*H);
     ctx.stroke();
   }
 }
-function ponto(p, t){ ctx.beginPath(); ctx.arc(p[0]*W, p[1]*W, t.tam * W / BASE / 2, 0, Math.PI*2); ctx.fill(); }
+function ponto(p, t){ ctx.beginPath(); ctx.arc(p[0]*W, p[1]*H, t.tam * W / BASE / 2, 0, Math.PI*2); ctx.fill(); }
 function desenharUltimo(t){
   const n = t.pts.length; estilo(t);
   if (n === 1) return ponto(t.pts[0], t);
   const a = t.pts[n-2], b = t.pts[n-1];
-  ctx.beginPath(); ctx.moveTo(a[0]*W, a[1]*W); ctx.lineTo(b[0]*W, b[1]*W); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(a[0]*W, a[1]*H); ctx.lineTo(b[0]*W, b[1]*H); ctx.stroke();
 }
 
 let atual = null, fila = [], ptrId = null;
@@ -526,9 +537,10 @@ function entrar(){
 }
 $('bEntrar').onclick = entrar;
 $('codigoEntrar').addEventListener('keydown', (e) => { if (e.key === 'Enter') entrar(); });
-$('bIniciar').onclick = () => env({ t:'iniciar' });
-$('bVouDesenhar').onclick = () => env({ t:'vouDesenhar' });
-$('bContinuar').onclick = () => env({ t:'continuar' });
+$('bIniciar').onclick = () => { deitar(); env({ t:'iniciar' }); };
+$('bVouDesenhar').onclick = () => { deitar(); env({ t:'vouDesenhar' }); };
+$('bContinuar').onclick = () => { deitar(); env({ t:'continuar' }); };
+$('bGirar').onclick = deitar;
 $('bDeNovo').onclick = () => env({ t:'iniciar' });
 $('bConfig').onclick = () => env({ t:'voltarLobby' });
 function sairSala(){
@@ -541,6 +553,15 @@ $('bCompartilhar').onclick = async () => {
   const dados = { title:'Rabisca Aí!', text:`Bora jogar Rabisca Aí! Código da sala: ${st.codigo}`, url: linkSala() };
   if (navigator.share) { try { await navigator.share(dados); } catch {} } else $('bCopiar').onclick();
 };
+
+// ---------- tela deitada ----------
+// tenta tela cheia + trava na horizontal (funciona no Android; no iPhone é só girar)
+async function deitar(){
+  try { if (!document.fullscreenElement && document.documentElement.requestFullscreen && matchMedia('(pointer:coarse)').matches) await document.documentElement.requestFullscreen({ navigationUI:'hide' }); } catch {}
+  try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape'); } catch {}
+  setTimeout(ajustarTela, 300);
+}
+matchMedia('(orientation: portrait)').addEventListener('change', () => setTimeout(ajustarTela, 200));
 
 // ---------- extras ----------
 function toast(t){ const e = $('toast'); e.textContent = t; e.classList.add('ativo'); clearTimeout(e._t); e._t = setTimeout(() => e.classList.remove('ativo'), 2200); }
